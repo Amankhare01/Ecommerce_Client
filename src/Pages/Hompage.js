@@ -1,29 +1,24 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import axios from "../api/axios";
 import toast from "react-hot-toast";
-import { Link } from "react-router-dom";
 import Layout from "../component/Layout/Layout/Layout";
-import { useNavigate } from "react-router-dom";
-import { Checkbox, Radio } from "antd";
+import ProductCard from "../component/ProductCard";
 import { Prices } from "../component/Layout/Prices";
-import { useCart } from "./context/Cart";
-import '../App.css'
+import { FiFilter, FiRotateCcw } from "react-icons/fi";
+
 const Hompage = () => {
-  const [cart, setcart] = useCart();
-  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [category, setcategories] = useState([]);
   const [chacked, setchacked] = useState([]);
   const [radio, setRadio] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setpage] = useState(1);
-  const [loading, setloading] = useState(1);
+  const [loading, setloading] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
 
   const getallcategories = async () => {
     try {
-      const { data } = await axios.get(
-        "https://mern-stack-ecommerce-0vdj.onrender.com/api/v1/category/get-category"
-      );
+      const { data } = await axios.get("/api/v1/category/get-category");
       if (data?.success) {
         setcategories(data?.category);
       }
@@ -31,6 +26,7 @@ const Hompage = () => {
       console.log(error);
     }
   };
+
   useEffect(() => {
     getallcategories();
     getTotal();
@@ -39,14 +35,12 @@ const Hompage = () => {
   const getAllProducts = async () => {
     try {
       setloading(true);
-      const { data } = await axios.get(
-        `https://mern-stack-ecommerce-0vdj.onrender.com/api/v1/product/product-list/${page}`
-      );
+      const { data } = await axios.get(`/api/v1/product/product-list/${page}`);
       setloading(false);
-      if (data.success) {
+      if (data?.success) {
         setProducts(data.products);
       } else {
-        toast.error(data.message || "Failed to fetch products");
+        toast.error(data?.message || "Failed to fetch products");
       }
     } catch (error) {
       setloading(false);
@@ -57,10 +51,8 @@ const Hompage = () => {
 
   const getTotal = async () => {
     try {
-      const { data } = await axios.get(
-        "https://mern-stack-ecommerce-0vdj.onrender.com/api/v1/product/product-count"
-      );
-      setTotal(data?.total);
+      const { data } = await axios.get("/api/v1/product/product-count");
+      setTotal(data?.total || 0);
     } catch (error) {
       console.log(error);
     }
@@ -77,20 +69,19 @@ const Hompage = () => {
   };
 
   useEffect(() => {
-    if (!chacked.length || !radio.length) getAllProducts();
+    if (!chacked.length && !radio.length) getAllProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chacked.length, radio.length]);
+
   useEffect(() => {
     if (chacked.length || radio.length) filterproduct();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chacked, radio]);
+
   const filterproduct = async () => {
     try {
-      const {
-        data,
-      } = await axios.post(
-        "https://mern-stack-ecommerce-0vdj.onrender.com/api/v1/product/product-filter",
-        { chacked, radio }
-      );
-      setProducts(data?.products);
+      const { data } = await axios.post("/api/v1/product/product-filter", { chacked, radio });
+      setProducts(data?.products || []);
     } catch (error) {
       console.log(error);
     }
@@ -99,147 +90,148 @@ const Hompage = () => {
   useEffect(() => {
     if (page === 1) return;
     loadmore();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
   const loadmore = async () => {
     try {
       setloading(true);
-      const { data } = await axios.get(
-        `https://mern-stack-ecommerce-0vdj.onrender.com/api/v1/product/product-list/${page}`
-      );
+      const { data } = await axios.get(`/api/v1/product/product-list/${page}`);
       setloading(false);
-      setProducts([...products, ...data?.products]);
+      setProducts((prev) => [...prev, ...(data?.products || [])]);
     } catch (error) {
       console.log(error);
       setloading(false);
     }
   };
+
+  const resetFilters = () => {
+    setchacked([]);
+    setRadio([]);
+    getAllProducts();
+  };
+
   return (
-    <Layout title={"All Products"}>
-      <div className="row mt-3" style={{ '--bs-gutter-x': '0' }}>
-        <div className="col-md-2">
-          <h3 className="text-center">Filter by Category</h3>
-          <div className="d-flex flex-column m-4">
-            {category?.map((c) => (
-              <Checkbox
-                key={c._id}
-                onChange={(e) => handlefilter(e.target.checked, c._id)}
-              >
-                {c.name}
-              </Checkbox>
-            ))}
-          </div>
-          <h3 className="text-center">Filter by Prices</h3>
-          <div className="d-flex flex-column m-4">
-            <Radio.Group onChange={(e) => setRadio(e.target.value)}>
-              {Prices?.map((p) => (
-                <div key={p._id}>
-                  <Radio value={p.Array}>{p.name}</Radio>
-                </div>
-              ))}
-            </Radio.Group>
-          </div>
-          <div className="d-flex flex-column">
+    <Layout title={"All Products - Ecommerce"}>
+      {/* Mobile Filter Toggle Button */}
+      <div className="md:hidden mb-4">
+        <button
+          onClick={() => setFilterOpen(!filterOpen)}
+          className="w-full flex items-center justify-center gap-2 bg-white border border-neutral-300 text-neutral-800 font-medium px-4 py-2.5 rounded-xl shadow-sm hover:bg-neutral-50 transition-colors"
+        >
+          <FiFilter className="w-4 h-4 text-primary-600" />
+          <span>{filterOpen ? "Hide Filters" : "Filter Products"}</span>
+          {(chacked.length > 0 || radio.length > 0) && (
+            <span className="bg-primary-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+              {chacked.length + (radio.length ? 1 : 0)}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* Main Grid Layout */}
+      <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-8 items-start">
+        
+        {/* Sidebar Filters */}
+        <aside className={`bg-white border border-neutral-200 rounded-2xl p-5 shadow-sm space-y-6 ${filterOpen ? "block" : "hidden md:block"}`}>
+          <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
+            <h3 className="font-bold text-neutral-900 text-base flex items-center gap-2">
+              <FiFilter className="text-primary-600" />
+              <span>Filters</span>
+            </h3>
             <button
-              className="btn btn-danger"
-              onClick={() => window.location.reload()}
+              onClick={resetFilters}
+              className="text-xs text-red-600 hover:text-red-700 font-medium flex items-center gap-1 transition-colors"
+              title="Reset all filters"
             >
-              Reload Page
+              <FiRotateCcw className="w-3 h-3" />
+              <span>Reset</span>
             </button>
           </div>
-        </div>
 
-        <div className="col-md-9">
-          <h1 className="text-center">All Product List</h1>
-          {/* {JSON.stringify(radio, null, 4)} */}
-          <div className="d-flex flex-wrap justify-content-center">
-  {products?.map((p) => (
-    <div
-  key={p._id}
-  className="card shadow-sm border-0 m-3"
-  style={{
-    width: "18rem",
-    borderRadius: "16px",
-    overflow: "hidden",
-    display: "flex",
-    flexDirection: "column",
-  }}
->
-  <Link to={`/product/${p.slug}`}>
-    <img
-      src={`https://mern-stack-ecommerce-0vdj.onrender.com/api/v1/product/photo-category/${p._id}`}
-      alt={p.name}
-      style={{
-        height: "220px",
-        objectFit: "cover",
-        width: "100%",
-      }}
-    />
-  </Link>
+          {/* Category Filter */}
+          <div>
+            <h4 className="font-semibold text-neutral-800 text-sm mb-3">Categories</h4>
+            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+              {category?.map((c) => (
+                <label key={c._id} className="flex items-center gap-2.5 text-sm text-neutral-600 hover:text-neutral-900 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={chacked.includes(c._id)}
+                    onChange={(e) => handlefilter(e.target.checked, c._id)}
+                    className="w-4 h-4 text-primary-600 rounded border-neutral-300 focus:ring-primary-500"
+                  />
+                  <span className="truncate">{c.name}</span>
+                </label>
+              ))}
+            </div>
+          </div>
 
-  <div
-    style={{
-      padding: "16px",
-      background: "linear-gradient(90deg, #b1b1b1ff 50%, #4aa1b5ff 100%)",
-      flexGrow: 1,
-      display: "flex",
-      flexDirection: "column",
-    }}
-  >
-    <h5 className="fw-semibold" style={{ marginBottom: "6px" }}>{p.name}</h5>
-    <p
-      className="text-muted small"
-      style={{
-        marginBottom: "6px",
-        minHeight: "40px",
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        whiteSpace: "nowrap",
-      }}
-    >
-      {p.description}
-    </p>
-    <h6 className=" mb-3">₹ {p.price}</h6>
+          {/* Price Filter */}
+          <div>
+            <h4 className="font-semibold text-neutral-800 text-sm mb-3">Price Band</h4>
+            <div className="space-y-2">
+              {Prices?.map((p) => (
+                <label key={p._id} className="flex items-center gap-2.5 text-sm text-neutral-600 hover:text-neutral-900 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="priceFilter"
+                    checked={JSON.stringify(radio) === JSON.stringify(p.Array)}
+                    onChange={() => setRadio(p.Array)}
+                    className="w-4 h-4 text-primary-600 border-neutral-300 focus:ring-primary-500"
+                  />
+                  <span>{p.name}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </aside>
 
-    <div className="d-flex gap-2 mt-auto">
-      <button
-        className="btn btn-outline-dark w-100"
-        onClick={() => navigate(`/product/${p.slug}`)}
-      >
-        View
-      </button>
-      <button
-        className="btn btn-primary w-100"
-        onClick={() => {
-          setcart([...cart, p]);
-          localStorage.setItem("cart", JSON.stringify([...cart, p]));
-          toast.success("Item added to cart");
-        }}
-      >
-        Add
-      </button>
-    </div>
-  </div>
-</div>
+        {/* Product Grid Area */}
+        <section>
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 tracking-tight">
+              All Products
+            </h1>
+            <span className="text-xs sm:text-sm text-neutral-500 font-medium">
+              Showing {products.length} product(s)
+            </span>
+          </div>
 
-  ))}
-</div>
-
-
-          <div className="m-2 p-3 text-center">
-            {products && products.length < total && (
+          {products.length === 0 ? (
+            <div className="bg-white border border-neutral-200 rounded-2xl p-12 text-center">
+              <p className="text-neutral-500 font-medium mb-3">No products match your selected filters.</p>
               <button
-                className="btn btn-primary"
+                onClick={resetFilters}
+                className="inline-flex items-center gap-2 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 px-4 py-2 rounded-xl transition-colors shadow-sm"
+              >
+                Clear Filters
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-3 sm:gap-6">
+              {products.map((p) => (
+                <ProductCard key={p._id} product={p} />
+              ))}
+            </div>
+          )}
+
+          {/* Load More Button */}
+          {products.length > 0 && products.length < total && (
+            <div className="mt-8 text-center">
+              <button
                 onClick={(e) => {
                   e.preventDefault();
                   setpage(page + 1);
                 }}
+                disabled={loading}
+                className="w-full sm:w-auto inline-flex items-center justify-center font-semibold text-sm text-white bg-primary-600 hover:bg-primary-700 active:bg-primary-800 px-8 py-3 rounded-xl shadow-sm transition-colors disabled:opacity-50"
               >
-                {loading ? "loading..." : "Loadmore"}
+                {loading ? "Loading products..." : "Load More Products"}
               </button>
-            )}
-          </div>
-        </div>
+            </div>
+          )}
+        </section>
       </div>
     </Layout>
   );

@@ -1,71 +1,36 @@
 import React from 'react';
 import Layout from '../component/Layout/Layout/Layout';
 import { useSearch } from './context/Search';
-import { useCart } from './context/Cart'; // import your cart context
-import { useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
+import ProductCard from '../component/ProductCard';
 
 const Searchx = () => {
   const [values] = useSearch();
-  const [cart, setCart] = useCart();
-  const navigate = useNavigate();
-
-  const handleAddToCart = (product) => {
-    const updatedCart = [...cart, product];
-    setCart(updatedCart);
-    localStorage.setItem('cart', JSON.stringify(updatedCart));
-    toast.success(`${product.name} added to cart`);
-  };
 
   return (
-    <Layout title="Search Results">
-      <div className="container py-4">
-        <div className="text-center mb-4">
-          <h2>Search Results</h2>
-          <h5 className="text-muted">
-            {values?.result.length < 1
-              ? 'No products found.'
-              : `Found ${values.result.length} product(s)`}
-          </h5>
+    <Layout title="Search Results - Ecommerce">
+      <div className="py-6 space-y-6">
+        <div className="text-center space-y-1">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-neutral-900 tracking-tight">
+            Search Results
+          </h1>
+          <p className="text-sm text-neutral-500 font-medium">
+            {values?.result?.length < 1
+              ? 'No products matched your query.'
+              : `Found ${values.result.length} matching product(s)`}
+          </p>
         </div>
 
-        <div className="row justify-content-center">
-          {values?.result.map((p) => (
-            <div key={p._id} className="col-md-4 col-lg-3 mb-4">
-              <div className="card h-100 shadow-sm">
-                <img
-                  src={`https://mern-stack-ecommerce-0vdj.onrender.com/api/v1/product/photo-category/${p._id}`}
-                  className="card-img-top"
-                  alt={p.name}
-                  style={{
-                    height: '220px',
-                    objectFit: 'cover',
-                    backgroundColor: '#f4f4f4',
-                  }}
-                />
-                <div className="card-body">
-                  <h5 className="card-title">{p.name}</h5>
-                  <p className="card-text small text-truncate">{p.description}</p>
-                  <p className="card-text fw-bold">₹ {p.price}</p>
-                  <div className="d-flex justify-content-between">
-                    <button
-                      onClick={() => navigate(`/product/${p.slug}`)}
-                      className="btn btn-outline-primary btn-sm"
-                    >
-                      More Details
-                    </button>
-                    <button
-                      onClick={() => handleAddToCart(p)}
-                      className="btn btn-outline-success btn-sm"
-                    >
-                      Add to Cart
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+        {values?.result?.length === 0 ? (
+          <div className="bg-white border border-neutral-200 rounded-2xl p-12 text-center text-neutral-500 shadow-sm max-w-md mx-auto">
+            Try searching with different keywords.
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+            {values?.result?.map((p) => (
+              <ProductCard key={p._id} product={p} />
+            ))}
+          </div>
+        )}
       </div>
     </Layout>
   );

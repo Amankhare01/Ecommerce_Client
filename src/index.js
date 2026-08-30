@@ -5,7 +5,6 @@ import {BrowserRouter} from "react-router-dom"
 import reportWebVitals from './reportWebVitals';
 import App from './App';
 import { AuthProvider } from './Pages/context/Auth';
-import 'antd/dist/reset.css'
 import { SearchProvider } from './Pages/context/Search';
 import { CartProvider } from './Pages/context/Cart';
 const root = ReactDOM.createRoot(document.getElementById('root'));

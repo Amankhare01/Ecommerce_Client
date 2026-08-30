@@ -1,24 +1,33 @@
 import {useState, useContext,useEffect ,createContext} from "react";
-import axios from "axios";
 const AuthContext = createContext();
 const AuthProvider = ({children}) =>{
     const [auth, setAuth] = useState({
-        users: "",
+        users: null,
         token: "",
     });
-    //default-axios
-    axios.defaults.headers.common["Authorization"]= auth?.token;
+
     useEffect(()=>{
         const data = localStorage.getItem("auth");
         if(data){
-            const parseData = JSON.parse(data);
-            setAuth({
-                ...auth,
-                users: parseData.users,
-                token: parseData.token,
-              });
+            try {
+                const parseData = JSON.parse(data);
+                setAuth({
+                    users: parseData.users,
+                    token: parseData.token,
+                });
+            } catch (err) {
+                console.error("Failed to parse auth from localStorage", err);
+            }
         }
-        // eslint-disable-next-line
+
+        const handleLogoutEvent = () => {
+            setAuth({ users: null, token: "" });
+        };
+
+        window.addEventListener("auth-logout", handleLogoutEvent);
+        return () => {
+            window.removeEventListener("auth-logout", handleLogoutEvent);
+        };
     },[]);
     return (
         <AuthContext.Provider value={[auth,setAuth]}>
